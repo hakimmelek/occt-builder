@@ -1,0 +1,12 @@
+# Large, machine-specific content: never committed
+/downloads/occt/*
+!/downloads/occt/README.txt
+/downloads/3rdparty/*
+!/downloads/3rdparty/README.txt
+/sources/*
+!/sources/README.txt
+/third_party/*
+!/third_party/README.txt
+/build/
+/install/
+/logs/

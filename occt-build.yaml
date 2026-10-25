@@ -1,0 +1,156 @@
+# =============================================================================
+# occt-builder configuration
+# -----------------------------------------------------------------------------
+# Edit this file, then double-click build_occt.bat (Windows) or run
+# ./build_occt.sh (Linux/macOS, needs PowerShell 7 "pwsh").
+#
+# Every path may be absolute or relative to the occt-builder folder.
+# "auto" means: let the builder find it in the standard folders.
+# =============================================================================
+
+schema: 1
+
+# -----------------------------------------------------------------------------
+# OCCT sources
+# -----------------------------------------------------------------------------
+occt:
+  # Folder with the OCCT sources (the one containing CMakeLists.txt and adm/).
+  #   auto        -> look inside sources/ (archives in downloads/occt/ are
+  #                  extracted there first)
+  #   OCCT-7_9_2  -> a folder name inside sources/
+  #   D:/src/occt -> any absolute path
+  source: auto
+
+  # Only used when source is "auto" and sources/ holds several OCCT versions:
+  # pick the one with this version, e.g. "7.9.2" or "8.0.1".
+  # Empty = there must be exactly one.
+  version: ""
+
+# -----------------------------------------------------------------------------
+# Third-party libraries (FreeType, Tcl/Tk, TBB, RapidJSON, ...)
+# -----------------------------------------------------------------------------
+third_party:
+  # Folder that contains one sub-folder per library (freetype-2.x-..., tcltk-...,
+  # tbb..., rapidjson-...). This is OCCT's 3RDPARTY_DIR.
+  #   auto -> third_party/ (archives in downloads/3rdparty/ are extracted there;
+  #           a single wrapper folder such as 3rdparty-vc14-64/ is detected)
+  # On Linux leave "auto": system packages are used when the folder is empty.
+  dir: auto
+
+  # Copy the third-party DLLs next to the OCCT DLLs in the install folder,
+  # so the result is self-contained (recommended on Windows).
+  install_dlls: true
+
+  # Explicit location of a single library, only if auto-search fails.
+  # Key = feature name below (freetype, tbb, tcl, tk, rapidjson, ...).
+  paths:
+    # freetype: D:/libs/freetype-2.13.3
+    # tcl: D:/libs/tcltk-8.6.15
+
+# -----------------------------------------------------------------------------
+# Compiler / CMake
+# -----------------------------------------------------------------------------
+toolchain:
+  # auto  -> newest Visual Studio found on Windows, Ninja (or Makefiles) elsewhere
+  # Examples: "Visual Studio 17 2022", "Visual Studio 16 2019", "Ninja"
+  generator: auto
+
+  # Target architecture: x64 (only x64 has been tested)
+  architecture: x64
+
+  # Optional MSVC toolset, e.g. v143 (VS 2022) or v142 (VS 2019). Empty = default.
+  toolset: ""
+
+  # C++ standard used to compile OCCT: C++17, C++20, ...
+  cpp_standard: C++17
+
+  # Path to cmake executable. auto -> PATH, then the CMake bundled with Visual Studio.
+  cmake: auto
+
+  # Parallel compile jobs. 0 = number of CPU cores.
+  jobs: 0
+
+# -----------------------------------------------------------------------------
+# Build
+# -----------------------------------------------------------------------------
+build:
+  # One or more of: Release, Debug, RelWithDebInfo.
+  # Debug and Release install side by side (bin/ and bind/ on Windows).
+  configurations: [Release]
+
+  # Shared -> DLLs (recommended), Static -> .lib only
+  library_type: Shared
+
+  # Delete the build folder before configuring (full rebuild)
+  clean: false
+
+  # Precompiled headers: faster build with MSVC
+  use_pch: true
+
+# -----------------------------------------------------------------------------
+# OCCT modules
+# -----------------------------------------------------------------------------
+# OCCTools needs everything up to DataExchange (STEP + XCAF). XCAF also depends
+# on Visualization toolkits, so keep Visualization on.
+modules:
+  FoundationClasses: true
+  ModelingData: true
+  ModelingAlgorithms: true
+  Visualization: true
+  ApplicationFramework: true
+  DataExchange: true
+  # DRAW test harness (Tcl console). Needs Tcl/Tk. Useful for debugging.
+  Draw: false
+
+# -----------------------------------------------------------------------------
+# Optional features -> OCCT options USE_<NAME>, INSTALL_<NAME>, 3RDPARTY_<NAME>_DIR
+# -----------------------------------------------------------------------------
+features:
+  freetype: true    # fonts / text rendering (needed by Visualization)
+  opengl: true      # OpenGL viewer driver (TKOpenGl), for a future viewer
+  tk: false         # Tk GUI for Draw (needs Draw: true)
+  tbb: false        # Intel TBB thread pool
+  rapidjson: false  # glTF import/export
+  draco: false      # glTF Draco mesh compression (needs rapidjson)
+  freeimage: false  # image formats for screenshots/textures
+  ffmpeg: false     # video recording
+  vtk: false        # VTK integration
+  eigen: false
+
+# -----------------------------------------------------------------------------
+# Output
+# -----------------------------------------------------------------------------
+output:
+  # Name of the build and install folders.
+  # Placeholders: {version} {compiler} {arch} {libtype}
+  name: "occt-{version}-{compiler}-{arch}"
+
+  # Where build and install folders are created. Keep them short on Windows
+  # (e.g. D:/occt/build) to avoid path-length problems.
+  build_root: build
+  install_root: install
+
+  # Windows -> win64/vc14/bin ... layout (OCCT default on Windows)
+  # Unix    -> bin/ lib/ include/opencascade/ (OCCT default elsewhere)
+  # auto    -> OCCT default for the current platform
+  layout: auto
+
+# -----------------------------------------------------------------------------
+# Extra CMake options, passed as -D<NAME>=<VALUE>. Applied last, so they
+# override anything above. Use this for any option of a specific OCCT version.
+# -----------------------------------------------------------------------------
+cmake_options:
+  BUILD_RELEASE_DISABLE_EXCEPTIONS: OFF   # keep exceptions in Release: safer for tools
+  BUILD_DOC_Overview: OFF
+
+# -----------------------------------------------------------------------------
+# Per-version settings, merged on top of the settings above when the detected
+# OCCT version matches the pattern (wildcards: *, ?).
+# -----------------------------------------------------------------------------
+version_overrides:
+  "7.*":
+    cmake_options:
+      BUILD_MODULE_DETools: OFF
+  "8.*":
+    cmake_options:
+      BUILD_GTEST: OFF
